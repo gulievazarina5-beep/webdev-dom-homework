@@ -8,53 +8,20 @@
 
   <body>
     <div class="container">
-      <ul class="comments">
-        <li class="comment">
-          <div class="comment-header">
-            <div>Глеб Фокин</div>
-            <div>12.02.22 12:18</div>
-          </div>
-          <div class="comment-body">
-            <div class="comment-text">
-              Это будет первый комментарий на этой странице
-            </div>
-          </div>
-          <div class="comment-footer">
-            <div class="likes">
-              <span class="likes-counter">3</span>
-              <button class="like-button"></button>
-            </div>
-          </div>
-        </li>
-        <li class="comment">
-          <div class="comment-header">
-            <div>Варвара Н.</div>
-            <div>13.02.22 19:22</div>
-          </div>
-          <div class="comment-body">
-            <div class="comment-text">
-              Мне нравится как оформлена эта страница! ❤
-            </div>
-          </div>
-          <div class="comment-footer">
-            <div class="likes">
-              <span class="likes-counter">75</span>
-              <button class="like-button -active-like"></button>
-            </div>
-          </div>
-        </li>
-      </ul>
+      <ul class="comments"></ul>
       <div class="add-form">
         <input
           type="text"
           class="add-form-name"
           placeholder="Введите ваше имя"
+          id="name-input"
         />
         <textarea
           type="textarea"
           class="add-form-text"
           placeholder="Введите ваш коментарий"
           rows="4"
+          id="text-input"
         ></textarea>
         <div class="add-form-row">
           <button class="add-form-button">Написать</button>
@@ -65,8 +32,67 @@
 
   <script>
     "use strict";
-    // Код писать здесь
     
-    console.log("It works!");
+    const comments = [
+      {
+        name:"Глеб Фокин",
+        date: new Date(),
+        text: "Это будет первый комментарий на странице",
+      },
+      {
+        name:"Варвара.Н",
+        date: new Date(),
+        text: "Мне нравится как оформлена эта страница! ❤",
+      }
+    ];
+
+    const renderComments = () => {
+      const list = document.querySelector(".comments")
+
+      list.innerHTML = comments.map((comment,index)=>{
+        return`
+          <li class="comment" data-index="${index}">
+          <div class="comment-header">
+            <div>${comment.name}</div>
+            <div>${comment.date.toLocaleDateString()}</div>
+          </div>
+          <div class="comment-body">
+            <div class="comment-text">
+              ${comment.text}
+            </div>
+          </div>
+          <div class="comment-footer">
+            <div class="likes">
+              <span class="likes-counter">3</span>
+              <button class="like-button"></button>
+            </div>
+          </div>
+        </li>
+        `;
+      })
+      .join("");
+    };
+
+    renderComments();
+
+    const addButton = document.querySelector(".add-form-button");
+    const name = document.getElementById("name-input"); 
+    const text = document.getElementById("text-input"); 
+
+
+    addButton.addEventListener("click",() => {
+      const newComment = {
+        name: name.value,
+        date: new Date(),
+        text: text.value
+      };
+
+      comments.push(newComment);
+
+      renderComments();
+
+      name.value = "";
+      text.value = "";
+    });
   </script>
 </html>
