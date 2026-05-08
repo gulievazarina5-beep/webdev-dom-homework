@@ -24,6 +24,7 @@ export const renderComments = ({ comments, listElement, textInputElement }) => {
 
     listElement.innerHTML = commentsHtml
 
+    // Обработчики лайков
     const likeButtons = document.querySelectorAll('.like-button')
     for (const likeButton of likeButtons) {
         likeButton.addEventListener('click', (event) => {
@@ -34,17 +35,17 @@ export const renderComments = ({ comments, listElement, textInputElement }) => {
                 ? comment.likes - 1
                 : comment.likes + 1
             comment.isLiked = !comment.isLiked
-
             renderComments({ comments, listElement, textInputElement })
         })
     }
 
+    // Обработчики ответов на комментарии
     const commentsElements = document.querySelectorAll('.comment')
     for (const commentElement of commentsElements) {
         commentElement.addEventListener('click', () => {
             const index = commentElement.dataset.index
             const currentComment = comments[index]
-            textInputElement.value = `${currentComment.name}: ${currentComment.text}`
+            textInputElement.value = `${currentComment.name}: ${currentComment.text}\n`
         })
     }
 }

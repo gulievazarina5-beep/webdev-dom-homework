@@ -1,5 +1,6 @@
-import { sanitizeHtml } from './utils.js'
+import { getComments, postComment } from './api.js'
 import { renderComments } from './render.js'
+import { sanitizeHtml } from './utils.js'
 
 const nameInput = document.getElementById('name-input')
 const textInput = document.getElementById('text-input')
@@ -9,36 +10,27 @@ const errorBlock = document.getElementById('error-block')
 
 let comments = []
 
+// Функция для получения данных и их отрисовки
 const fetchAndRenderComments = () => {
-    return fetch('https://wedev-api.sky.pro/api/v1/zarina-gulieva/comments', {
-        method: 'GET',
+    return getComments().then((responseData) => {
+        comments = responseData.comments.map((comment) => {
+            return {
+                name: comment.author.name,
+                date: new Date(comment.date),
+                text: comment.text,
+                likes: comment.likes,
+                isLiked: false,
+            }
+        })
+        renderComments({ comments, listElement, textInputElement: textInput })
     })
-        .then((response) => {
-            return response.json()
-        })
-        .then((responseData) => {
-            const appComments = responseData.comments.map((comment) => {
-                return {
-                    name: comment.author.name,
-                    date: new Date(comment.date),
-                    text: comment.text,
-                    likes: comment.likes,
-                    isLiked: false, 
-                }
-            })
-
-            comments = appComments
-            renderComments({
-                comments,
-                listElement,
-                textInputElement: textInput,
-            })
-        })
 }
 
+// Первичная загрузка
 fetchAndRenderComments()
 
-addButton.addEventListener('click', () => {
+// Функция добавления комментария, вынесенная в отдельный обработчик
+const handleAddComment = () => {
     if (!nameInput.value.trim() || !textInput.value.trim()) {
         errorBlock.textContent = 'Заполните форму, пожалуйста'
         errorBlock.style.display = 'block'
@@ -47,16 +39,10 @@ addButton.addEventListener('click', () => {
 
     errorBlock.style.display = 'none'
 
-    fetch('https://wedev-api.sky.pro/api/v1/zarina-gulieva/comments', {
-        method: 'POST',
-        body: JSON.stringify({
-            name: sanitizeHtml(nameInput.value),
-            text: sanitizeHtml(textInput.value),
-        }),
+    postComment({
+        name: sanitizeHtml(nameInput.value),
+        text: sanitizeHtml(textInput.value),
     })
-        .then((response) => {
-            return response.json()
-        })
         .then(() => {
             return fetchAndRenderComments()
         })
@@ -64,7 +50,9 @@ addButton.addEventListener('click', () => {
             nameInput.value = ''
             textInput.value = ''
         })
-})
+}
+
+addButton.addEventListener('click', handleAddComment)
 
 const hideError = () => {
     errorBlock.style.display = 'none'
