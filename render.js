@@ -1,4 +1,9 @@
-export const renderComments = ({ comments, listElement, textInputElement }) => {
+import { comments } from './store.js'
+import { handleLikeClick, handleCommentClick } from './handlers.js'
+
+export const renderComments = () => {
+    const listElement = document.querySelector('.comments')
+
     const commentsHtml = comments
         .map((comment, index) => {
             return `
@@ -24,28 +29,15 @@ export const renderComments = ({ comments, listElement, textInputElement }) => {
 
     listElement.innerHTML = commentsHtml
 
-    // Обработчики лайков
+    // Навешиваем обработчики лайков из модуля handlers
     const likeButtons = document.querySelectorAll('.like-button')
     for (const likeButton of likeButtons) {
-        likeButton.addEventListener('click', (event) => {
-            event.stopPropagation()
-            const index = likeButton.dataset.index
-            const comment = comments[index]
-            comment.likes = comment.isLiked
-                ? comment.likes - 1
-                : comment.likes + 1
-            comment.isLiked = !comment.isLiked
-            renderComments({ comments, listElement, textInputElement })
-        })
+        likeButton.addEventListener('click', handleLikeClick)
     }
 
-    // Обработчики ответов на комментарии
+    // Навешиваем обработчики ответов из модуля handlers
     const commentsElements = document.querySelectorAll('.comment')
     for (const commentElement of commentsElements) {
-        commentElement.addEventListener('click', () => {
-            const index = commentElement.dataset.index
-            const currentComment = comments[index]
-            textInputElement.value = `${currentComment.name}: ${currentComment.text}\n`
-        })
+        commentElement.addEventListener('click', handleCommentClick)
     }
 }

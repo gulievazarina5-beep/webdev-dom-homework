@@ -1,42 +1,19 @@
-import { getComments } from './api.js';
-import { renderComments } from './render.js';
-import { handleAddComment } from './add-comment.js'; // Импортируем новый модуль
+import { fetchAndRenderComments, handleAddComment } from './handlers.js'
 
-const nameInput = document.getElementById('name-input');
-const textInput = document.getElementById('text-input');
-const addButton = document.querySelector('.add-form-button');
-const listElement = document.querySelector('.comments');
-const errorBlock = document.getElementById('error-block');
+const nameInput = document.getElementById('name-input')
+const textInput = document.getElementById('text-input')
+const addButton = document.querySelector('.add-form-button')
+const errorBlock = document.getElementById('error-block')
 
-let comments = [];
+// Первоначальный запрос данных
+fetchAndRenderComments()
 
-const fetchAndRenderComments = () => {
-    return getComments().then((responseData) => {
-        comments = responseData.comments.map((comment) => {
-            return {
-                name: comment.author.name,
-                date: new Date(comment.date),
-                text: comment.text,
-                likes: comment.likes,
-                isLiked: false,
-            };
-        });
-        renderComments({ comments, listElement, textInputElement: textInput });
-    });
-};
+// Главные обработчики формы
+addButton.addEventListener('click', handleAddComment)
 
-fetchAndRenderComments();
+const hideError = () => {
+    errorBlock.style.display = 'none'
+}
 
-// Просто вызываем импортированную функцию
-addButton.addEventListener('click', () => {
-    handleAddComment({ 
-        nameInput, 
-        textInput, 
-        errorBlock, 
-        fetchAndRenderComments 
-    });
-});
-
-const hideError = () => { errorBlock.style.display = 'none'; };
-nameInput.addEventListener('input', hideError);
-textInput.addEventListener('input', hideError);
+nameInput.addEventListener('input', hideError)
+textInput.addEventListener('input', hideError)
