@@ -8,7 +8,6 @@ import { renderComments } from './render.js'
 export const fetchAndRenderComments = () => {
     const listElement = document.querySelector('.comments')
 
-    // Создаем лоадер с белым цветом текста, чтобы его было видно на темном фоне
     const loadingCommentsEl = document.createElement('div')
     loadingCommentsEl.id = 'loading-comments'
     loadingCommentsEl.textContent = 'Пожалуйста, подождите, данные загружаются...'
@@ -34,15 +33,17 @@ export const fetchAndRenderComments = () => {
             renderComments()
         })
         .catch((error) => {
-            console.error("Ошибка при получении комментариев:", error)
-            alert("Сервер упал или пропал интернет. Попробуйте обновить страницу еще раз.")
+            console.error("Ошибка при загрузке:", error)
+            // Если сервер вернул 500 или упал с CORS-ошибкой
+            if (error.message === 'Сервер сломался' || error.message.includes('fetch') || error.message.includes('type')) {
+                alert('Сервер сломался, попробуй позже')
+            } else {
+                alert('Кажется, у вас сломался интернет, попробуйте позже')
+            }
         })
         .finally(() => {
-            // Удаляем динамический лоадер
             const elToRemove = document.getElementById('loading-comments')
             if (elToRemove) elToRemove.remove()
-            
-            // Возвращаем исходный стиль отображения для списка комментариев
             if (listElement) listElement.style.display = 'block' 
         })
 }
@@ -54,15 +55,17 @@ export const handleAddComment = () => {
     const errorBlock = document.getElementById('error-block')
     const addFormEl = document.querySelector('.add-form')
 
-    if (!nameInput.value.trim() || !textInput.value.trim()) {
-        errorBlock.textContent = 'Заполните форму, пожалуйста'
-        errorBlock.style.display = 'block'
+    const trimmedName = nameInput.value.trim()
+    const trimmedText = textInput.value.trim()
+
+    // Валидация по критериям: строка менее 3 символов
+    if (trimmedName.length < 3 || trimmedText.length < 3) {
+        alert('Имя и комментарий должны быть не короче 3 символов')
         return
     }
 
-    errorBlock.style.display = 'none'
+    if (errorBlock) errorBlock.style.display = 'none'
 
-    // Лоадер для формы с белым цветом текста
     const loadingFormEl = document.createElement('div')
     loadingFormEl.id = 'loading-form'
     loadingFormEl.textContent = 'Комментарий добавляется...'
@@ -70,7 +73,7 @@ export const handleAddComment = () => {
 
     if (addFormEl) {
         addFormEl.before(loadingFormEl)
-        addFormEl.style.display = 'none'
+        addFormEl.style.display = 'none' // Скрываем форму через display по ТЗ
     }
 
     postComment({
@@ -93,34 +96,40 @@ export const handleAddComment = () => {
             setComments(transformedComments)
             renderComments()
             
+            // Данные затираются ТОЛЬКО в случае успеха
             nameInput.value = ''
             textInput.value = ''
         })
         .catch((error) => {
-            console.error("Ошибка при добавлении комментария:", error)
-            alert("Не удалось добавить комментарий. Сервер перегружен, повторите попытку.")
+            console.error("Ошибка при добавлении:", error)
+            
+            // Расширенная проверка ошибок (учитывает CORS-блокировку браузера при 500 статусе)
+            if (error.message === 'Плохой запрос') {
+                alert('Имя и комментарий должны быть не короче 3 символов')
+            } else if (error.message === 'Сервер сломался' || error.message.includes('fetch') || error.message.includes('type')) {
+                alert('Сервер сломался, попробуй позже')
+            } else {
+                alert('Кажется, у вас сломался интернет, попробуйте позже')
+            }
         })
         .finally(() => {
-            // Возвращаем форму обратно на экран
             const elToRemove = document.getElementById('loading-form')
             if (elToRemove) elToRemove.remove()
-            if (addFormEl) addFormEl.style.display = 'flex'
+            if (addFormEl) addFormEl.style.display = 'flex' // Возвращаем форму обратно, текст внутри не потерян
         })
 }
 
-// Обработчик клика по лайку
 export const handleLikeClick = (event) => {
     event.stopPropagation()
     const index = event.target.dataset.index
     const comment = comments[index]
 
-    comment.likes = comment.isLiked ? comment.likes - 1 : comment.likes + 1
+    comment.likes  = comment.isLiked ? comment.likes - 1 : comment.likes + 1
     comment.isLiked = !comment.isLiked
 
     renderComments()
 }
 
-// Обработчик клика по комментарию (ответ)
 export const handleCommentClick = (event) => {
     const commentElement = event.currentTarget
     const index = commentElement.dataset.index

@@ -4,6 +4,10 @@ export function getComments() {
     return fetch(host, {
         method: 'GET',
     }).then((response) => {
+        // Обработка 500 ошибки на получение комментов
+        if (response.status === 500) {
+            throw new Error('Сервер сломался')
+        }
         return response.json()
     })
 }
@@ -14,8 +18,18 @@ export function postComment({ name, text }) {
         body: JSON.stringify({
             name: name,
             text: text,
+            forceError: true, // Включено по ТЗ для симуляции 500-й ошибки сервера
         }),
     }).then((response) => {
+        // Обработка 400 ошибки (короткое имя/текст)
+        if (response.status === 400) {
+            throw new Error('Плохой запрос')
+        }
+        // Обработка 500 ошибки на добавление коммента
+        if (response.status === 500) {
+            throw new Error('Сервер сломался')
+        }
         return response.json()
     })
 }
+
