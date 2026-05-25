@@ -8,7 +8,6 @@ import { renderComments } from './render.js'
 export const fetchAndRenderComments = () => {
     const listElement = document.querySelector('.comments')
 
-    // Создаем лоадер с белым цветом текста, чтобы его было видно на темном фоне
     const loadingCommentsEl = document.createElement('div')
     loadingCommentsEl.id = 'loading-comments'
     loadingCommentsEl.textContent = 'Пожалуйста, подождите, данные загружаются...'
@@ -34,15 +33,16 @@ export const fetchAndRenderComments = () => {
             renderComments()
         })
         .catch((error) => {
-            console.error("Ошибка при получении комментариев:", error)
-            alert("Сервер упал или пропал интернет. Попробуйте обновить страницу еще раз.")
+            console.error("Ошибка при загрузке:", error)
+            if (error.message === 'Сервер сломался') {
+                alert('Сервер сломался, попробуй позже')
+            } else {
+                alert('Кажется, у вас сломался интернет, попробуйте позже')
+            }
         })
         .finally(() => {
-            // Удаляем динамический лоадер
             const elToRemove = document.getElementById('loading-comments')
             if (elToRemove) elToRemove.remove()
-            
-            // Возвращаем исходный стиль отображения для списка комментариев
             if (listElement) listElement.style.display = 'block' 
         })
 }
@@ -54,15 +54,8 @@ export const handleAddComment = () => {
     const errorBlock = document.getElementById('error-block')
     const addFormEl = document.querySelector('.add-form')
 
-    if (!nameInput.value.trim() || !textInput.value.trim()) {
-        errorBlock.textContent = 'Заполните форму, пожалуйста'
-        errorBlock.style.display = 'block'
-        return
-    }
+    if (errorBlock) errorBlock.style.display = 'none'
 
-    errorBlock.style.display = 'none'
-
-    // Лоадер для формы с белым цветом текста
     const loadingFormEl = document.createElement('div')
     loadingFormEl.id = 'loading-form'
     loadingFormEl.textContent = 'Комментарий добавляется...'
@@ -70,7 +63,7 @@ export const handleAddComment = () => {
 
     if (addFormEl) {
         addFormEl.before(loadingFormEl)
-        addFormEl.style.display = 'none'
+        addFormEl.style.display = 'none' 
     }
 
     postComment({
@@ -97,22 +90,33 @@ export const handleAddComment = () => {
             textInput.value = ''
         })
         .catch((error) => {
-            console.error("Ошибка при добавлении комментария:", error)
-            alert("Не удалось добавить комментарий. Сервер перегружен, повторите попытку.")
+            console.error("Ошибка при добавлении:", error)
+            
+            if (error.message === 'Плохой запрос') {
+                alert('Имя и комментарий должны быть не короче 3 символов')
+            } else if (error.message === 'Сервер сломался') {
+                alert('Сервер сломался, попробуй позже')
+            } else {
+                alert('Кажется, у вас сломался интернет, попробуйте позже')
+            }
         })
         .finally(() => {
-            // Возвращаем форму обратно на экран
             const elToRemove = document.getElementById('loading-form')
             if (elToRemove) elToRemove.remove()
-            if (addFormEl) addFormEl.style.display = 'flex'
+            if (addFormEl) addFormEl.style.display = 'flex' 
         })
 }
 
-// Обработчик клика по лайку
+// 3. Сценарий: Клик по лайку
 export const handleLikeClick = (event) => {
     event.stopPropagation()
-    const index = event.target.dataset.index
+    
+    // ИСПРАВЛЕНО: event.currentTarget гарантирует получение индекса с элемента кнопки, а не со вложенного SVG
+    const buttonElement = event.currentTarget
+    const index = buttonElement.dataset.index
     const comment = comments[index]
+
+    if (!comment) return 
 
     comment.likes = comment.isLiked ? comment.likes - 1 : comment.likes + 1
     comment.isLiked = !comment.isLiked
@@ -120,12 +124,14 @@ export const handleLikeClick = (event) => {
     renderComments()
 }
 
-// Обработчик клика по комментарию (ответ)
+// 4. Сценарий: Клик по комментарию (ответ)
 export const handleCommentClick = (event) => {
     const commentElement = event.currentTarget
     const index = commentElement.dataset.index
     const currentComment = comments[index]
     const textInput = document.getElementById('text-input')
 
-    textInput.value = `${currentComment.name}: ${currentComment.text}\n`
+    if (currentComment && textInput) {
+        textInput.value = `${currentComment.name}: ${currentComment.text}\n`
+    }
 }
