@@ -34,8 +34,7 @@ export const fetchAndRenderComments = () => {
         })
         .catch((error) => {
             console.error("Ошибка при загрузке:", error)
-            // Если сервер вернул 500 или упал с CORS-ошибкой
-            if (error.message === 'Сервер сломался' || error.message.includes('fetch') || error.message.includes('type')) {
+            if (error.message === 'Сервер сломался') {
                 alert('Сервер сломался, попробуй позже')
             } else {
                 alert('Кажется, у вас сломался интернет, попробуйте позже')
@@ -55,15 +54,6 @@ export const handleAddComment = () => {
     const errorBlock = document.getElementById('error-block')
     const addFormEl = document.querySelector('.add-form')
 
-    const trimmedName = nameInput.value.trim()
-    const trimmedText = textInput.value.trim()
-
-    // Валидация по критериям: строка менее 3 символов
-    if (trimmedName.length < 3 || trimmedText.length < 3) {
-        alert('Имя и комментарий должны быть не короче 3 символов')
-        return
-    }
-
     if (errorBlock) errorBlock.style.display = 'none'
 
     const loadingFormEl = document.createElement('div')
@@ -73,7 +63,7 @@ export const handleAddComment = () => {
 
     if (addFormEl) {
         addFormEl.before(loadingFormEl)
-        addFormEl.style.display = 'none' // Скрываем форму через display по ТЗ
+        addFormEl.style.display = 'none' 
     }
 
     postComment({
@@ -96,17 +86,15 @@ export const handleAddComment = () => {
             setComments(transformedComments)
             renderComments()
             
-            // Данные затираются ТОЛЬКО в случае успеха
             nameInput.value = ''
             textInput.value = ''
         })
         .catch((error) => {
             console.error("Ошибка при добавлении:", error)
             
-            // Расширенная проверка ошибок (учитывает CORS-блокировку браузера при 500 статусе)
             if (error.message === 'Плохой запрос') {
                 alert('Имя и комментарий должны быть не короче 3 символов')
-            } else if (error.message === 'Сервер сломался' || error.message.includes('fetch') || error.message.includes('type')) {
+            } else if (error.message === 'Сервер сломался') {
                 alert('Сервер сломался, попробуй позже')
             } else {
                 alert('Кажется, у вас сломался интернет, попробуйте позже')
@@ -115,26 +103,35 @@ export const handleAddComment = () => {
         .finally(() => {
             const elToRemove = document.getElementById('loading-form')
             if (elToRemove) elToRemove.remove()
-            if (addFormEl) addFormEl.style.display = 'flex' // Возвращаем форму обратно, текст внутри не потерян
+            if (addFormEl) addFormEl.style.display = 'flex' 
         })
 }
 
+// 3. Сценарий: Клик по лайку
 export const handleLikeClick = (event) => {
     event.stopPropagation()
-    const index = event.target.dataset.index
+    
+    // ИСПРАВЛЕНО: event.currentTarget гарантирует получение индекса с элемента кнопки, а не со вложенного SVG
+    const buttonElement = event.currentTarget
+    const index = buttonElement.dataset.index
     const comment = comments[index]
 
-    comment.likes  = comment.isLiked ? comment.likes - 1 : comment.likes + 1
+    if (!comment) return 
+
+    comment.likes = comment.isLiked ? comment.likes - 1 : comment.likes + 1
     comment.isLiked = !comment.isLiked
 
     renderComments()
 }
 
+// 4. Сценарий: Клик по комментарию (ответ)
 export const handleCommentClick = (event) => {
     const commentElement = event.currentTarget
     const index = commentElement.dataset.index
     const currentComment = comments[index]
     const textInput = document.getElementById('text-input')
 
-    textInput.value = `${currentComment.name}: ${currentComment.text}\n`
+    if (currentComment && textInput) {
+        textInput.value = `${currentComment.name}: ${currentComment.text}\n`
+    }
 }
