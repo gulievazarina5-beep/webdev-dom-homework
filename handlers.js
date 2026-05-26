@@ -1,14 +1,13 @@
 import { postComment } from './api.js'
 import { sanitizeHtml } from './utils.js'
-import { comments, setComments } from './store.js'
+import { comments, setComments, token } from './store.js'
 import { getComments } from './api.js'
 import { renderComments } from './render.js'
 
-// 1. Сценарий: Первоначальная загрузка приложения
 export const fetchAndRenderComments = () => {
     const listElement = document.querySelector('.comments')
+    const appElement = document.querySelector('#app')
 
-    // Создаем лоадер с белым цветом текста, чтобы его было видно на темном фоне
     const loadingCommentsEl = document.createElement('div')
     loadingCommentsEl.id = 'loading-comments'
     loadingCommentsEl.textContent = 'Пожалуйста, подождите, данные загружаются...'
@@ -17,6 +16,8 @@ export const fetchAndRenderComments = () => {
     if (listElement) {
         listElement.before(loadingCommentsEl)
         listElement.style.display = 'none'
+    } else if (appElement) {
+        appElement.appendChild(loadingCommentsEl)
     }
 
     return getComments()
@@ -34,35 +35,36 @@ export const fetchAndRenderComments = () => {
             renderComments()
         })
         .catch((error) => {
-            console.error("Ошибка при получении комментариев:", error)
-            alert("Сервер упал или пропал интернет. Попробуйте обновить страницу еще раз.")
+            console.error("Ошибка при загрузке:", error)
+            if (error.message === 'Сервер сломался') {
+                alert('Сервер сломался, попробуй позже')
+            } else {
+                alert('Кажется, у вас сломался интернет, попробуйте позже')
+            }
         })
         .finally(() => {
-            // Удаляем динамический лоадер
             const elToRemove = document.getElementById('loading-comments')
             if (elToRemove) elToRemove.remove()
-            
-            // Возвращаем исходный стиль отображения для списка комментариев
-            if (listElement) listElement.style.display = 'block' 
+            const currentListElement = document.querySelector('.comments')
+            if (currentListElement) currentListElement.style.display = 'block' 
         })
 }
 
-// 2. Сценарий: Добавление нового комментария
 export const handleAddComment = () => {
-    const nameInput = document.getElementById('name-input')
     const textInput = document.getElementById('text-input')
     const errorBlock = document.getElementById('error-block')
     const addFormEl = document.querySelector('.add-form')
 
-    if (!nameInput.value.trim() || !textInput.value.trim()) {
-        errorBlock.textContent = 'Заполните форму, пожалуйста'
-        errorBlock.style.display = 'block'
+    if (errorBlock) errorBlock.style.display = 'none'
+
+    if (!textInput.value.trim()) {
+        if (errorBlock) {
+            errorBlock.textContent = 'Комментарий не может быть пустым'
+            errorBlock.style.display = 'block'
+        }
         return
     }
 
-    errorBlock.style.display = 'none'
-
-    // Лоадер для формы с белым цветом текста
     const loadingFormEl = document.createElement('div')
     loadingFormEl.id = 'loading-form'
     loadingFormEl.textContent = 'Комментарий добавляется...'
@@ -70,12 +72,12 @@ export const handleAddComment = () => {
 
     if (addFormEl) {
         addFormEl.before(loadingFormEl)
-        addFormEl.style.display = 'none'
+        addFormEl.style.display = 'none' 
     }
 
     postComment({
-        name: sanitizeHtml(nameInput.value),
         text: sanitizeHtml(textInput.value),
+        token: token,
     })
         .then(() => {
             return getComments()
@@ -92,27 +94,35 @@ export const handleAddComment = () => {
             })
             setComments(transformedComments)
             renderComments()
-            
-            nameInput.value = ''
             textInput.value = ''
         })
         .catch((error) => {
-            console.error("Ошибка при добавлении комментария:", error)
-            alert("Не удалось добавить комментарий. Сервер перегружен, повторите попытку.")
+            console.error("Ошибка при добавлении:", error)
+            
+            if (error.message === 'Плохой запрос') {
+                alert('Комментарий должен быть не короче 3 символов')
+            } else if (error.message === 'Сервер сломался') {
+                alert('Сервер сломался, попробуй позже')
+            } else {
+                alert('Кажется, у вас сломался интернет, попробуйте позже')
+            }
         })
         .finally(() => {
-            // Возвращаем форму обратно на экран
             const elToRemove = document.getElementById('loading-form')
             if (elToRemove) elToRemove.remove()
-            if (addFormEl) addFormEl.style.display = 'flex'
+            const currentAddFormEl = document.querySelector('.add-form')
+            if (currentAddFormEl) currentAddFormEl.style.display = 'flex' 
         })
 }
 
-// Обработчик клика по лайку
 export const handleLikeClick = (event) => {
     event.stopPropagation()
-    const index = event.target.dataset.index
+    
+    const buttonElement = event.currentTarget
+    const index = buttonElement.dataset.index
     const comment = comments[index]
+
+    if (!comment) return 
 
     comment.likes = comment.isLiked ? comment.likes - 1 : comment.likes + 1
     comment.isLiked = !comment.isLiked
@@ -120,12 +130,16 @@ export const handleLikeClick = (event) => {
     renderComments()
 }
 
-// Обработчик клика по комментарию (ответ)
 export const handleCommentClick = (event) => {
+    const textInput = document.getElementById('text-input')
+    
+    if (!textInput) return 
+
     const commentElement = event.currentTarget
     const index = commentElement.dataset.index
     const currentComment = comments[index]
-    const textInput = document.getElementById('text-input')
 
-    textInput.value = `${currentComment.name}: ${currentComment.text}\n`
+    if (currentComment) {
+        textInput.value = `${currentComment.name}: ${currentComment.text}\n`
+    }
 }
